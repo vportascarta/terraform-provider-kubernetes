@@ -907,7 +907,7 @@ func expandWindowsOptions(l []interface{}) *v1.WindowsSecurityContextOptions {
 	in := l[0].(map[string]interface{})
 	obj := &v1.WindowsSecurityContextOptions{}
 
-	if v, ok := in["gmsa_credential_spec"].(string); ok {
+	if v, ok := in["gmsa_credential_spec"].(string); ok && v != "" {
 		obj.GMSACredentialSpec = ptr.To(v)
 	}
 
@@ -915,11 +915,11 @@ func expandWindowsOptions(l []interface{}) *v1.WindowsSecurityContextOptions {
 		obj.HostProcess = ptr.To(v)
 	}
 
-	if v, ok := in["gmsa_credential_spec_name"].(string); ok {
+	if v, ok := in["gmsa_credential_spec_name"].(string); ok && v != "" {
 		obj.GMSACredentialSpecName = ptr.To(v)
 	}
 
-	if v, ok := in["run_as_username"].(string); ok {
+	if v, ok := in["run_as_username"].(string); ok && v != "" {
 		obj.RunAsUserName = ptr.To(v)
 	}
 

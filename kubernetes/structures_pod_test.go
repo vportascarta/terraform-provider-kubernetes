@@ -698,3 +698,127 @@ func TestFlattenCSIVolumeSource(t *testing.T) {
 		}
 	}
 }
+
+func TestExpandWindowsOptions(t *testing.T) {
+	cases := []struct {
+		Input          []interface{}
+		ExpectedOutput *v1.WindowsSecurityContextOptions
+	}{
+		{
+			[]interface{}{
+				map[string]interface{}{
+					"gmsa_credential_spec":      `{"CmsPlugins":["ActiveDirectory"],"DomainJoinConfig":{"Sid":"S-1-5-21-1234567890-1234567890-1234567890","MachineAccountName":"webapp01","Guid":"12345678-1234-1234-1234-123456789012","DnsTreeName":"contoso.com","DnsName":"contoso.com","NetBiosName":"CONTOSO"},"ActiveDirectoryConfig":{"GroupManagedServiceAccounts":[{"Name":"webapp01","Scope":"contoso.com"}]}}`,
+					"host_process":              true,
+					"gmsa_credential_spec_name": "credspecname1",
+					"run_as_username":           "DOMAIN\\serviceaccount",
+				},
+			},
+			&v1.WindowsSecurityContextOptions{
+				GMSACredentialSpec:     ptr.To(`{"CmsPlugins":["ActiveDirectory"],"DomainJoinConfig":{"Sid":"S-1-5-21-1234567890-1234567890-1234567890","MachineAccountName":"webapp01","Guid":"12345678-1234-1234-1234-123456789012","DnsTreeName":"contoso.com","DnsName":"contoso.com","NetBiosName":"CONTOSO"},"ActiveDirectoryConfig":{"GroupManagedServiceAccounts":[{"Name":"webapp01","Scope":"contoso.com"}]}}`),
+				HostProcess:            ptr.To(true),
+				GMSACredentialSpecName: ptr.To("credspecname1"),
+				RunAsUserName:          ptr.To("DOMAIN\\serviceaccount"),
+			},
+		},
+		{
+			[]interface{}{
+				map[string]interface{}{
+					"gmsa_credential_spec": `{"CmsPlugins":["ActiveDirectory"],"DomainJoinConfig":{"Sid":"S-1-5-21-9876543210-9876543210-9876543210","MachineAccountName":"webapi01","Guid":"87654321-4321-4321-4321-210987654321","DnsTreeName":"corp.local","DnsName":"corp.local","NetBiosName":"CORP"},"ActiveDirectoryConfig":{"GroupManagedServiceAccounts":[{"Name":"webapi01","Scope":"corp.local"}]}}`,
+					"host_process":         false,
+				},
+			},
+			&v1.WindowsSecurityContextOptions{
+				GMSACredentialSpec: ptr.To(`{"CmsPlugins":["ActiveDirectory"],"DomainJoinConfig":{"Sid":"S-1-5-21-9876543210-9876543210-9876543210","MachineAccountName":"webapi01","Guid":"87654321-4321-4321-4321-210987654321","DnsTreeName":"corp.local","DnsName":"corp.local","NetBiosName":"CORP"},"ActiveDirectoryConfig":{"GroupManagedServiceAccounts":[{"Name":"webapi01","Scope":"corp.local"}]}}`),
+				HostProcess:        ptr.To(false),
+			},
+		},
+		{
+			[]interface{}{
+				map[string]interface{}{
+					"gmsa_credential_spec_name": "credspecname2",
+					"run_as_username":           "NT AUTHORITY\\SYSTEM",
+				},
+			},
+			&v1.WindowsSecurityContextOptions{
+				GMSACredentialSpecName: ptr.To("credspecname2"),
+				RunAsUserName:          ptr.To("NT AUTHORITY\\SYSTEM"),
+			},
+		},
+		{
+			[]interface{}{
+				map[string]interface{}{
+					"gmsa_credential_spec":      "",
+					"gmsa_credential_spec_name": "",
+					"run_as_username":           "",
+				},
+			},
+			&v1.WindowsSecurityContextOptions{},
+		},
+		{
+			[]interface{}{},
+			&v1.WindowsSecurityContextOptions{},
+		},
+		{
+			nil,
+			&v1.WindowsSecurityContextOptions{},
+		},
+	}
+
+	for _, tc := range cases {
+		output := expandWindowsOptions(tc.Input)
+		if !reflect.DeepEqual(output, tc.ExpectedOutput) {
+			t.Fatalf("Unexpected output from expander.\nExpected: %#v\nGiven:    %#v",
+				tc.ExpectedOutput, output)
+		}
+	}
+}
+
+func TestFlattenWindowsOptions(t *testing.T) {
+	cases := []struct {
+		Input          v1.WindowsSecurityContextOptions
+		ExpectedOutput []interface{}
+	}{
+		{
+			v1.WindowsSecurityContextOptions{
+				GMSACredentialSpec:     ptr.To(`{"CmsPlugins":["ActiveDirectory"],"DomainJoinConfig":{"Sid":"S-1-5-21-1234567890-1234567890-1234567890","MachineAccountName":"webapp01","Guid":"12345678-1234-1234-1234-123456789012","DnsTreeName":"contoso.com","DnsName":"contoso.com","NetBiosName":"CONTOSO"},"ActiveDirectoryConfig":{"GroupManagedServiceAccounts":[{"Name":"webapp01","Scope":"contoso.com"}]}}`),
+				HostProcess:            ptr.To(true),
+				GMSACredentialSpecName: ptr.To("credspecname1"),
+				RunAsUserName:          ptr.To("DOMAIN\\serviceaccount"),
+			},
+			[]interface{}{
+				map[string]interface{}{
+					"gmsa_credential_spec":      `{"CmsPlugins":["ActiveDirectory"],"DomainJoinConfig":{"Sid":"S-1-5-21-1234567890-1234567890-1234567890","MachineAccountName":"webapp01","Guid":"12345678-1234-1234-1234-123456789012","DnsTreeName":"contoso.com","DnsName":"contoso.com","NetBiosName":"CONTOSO"},"ActiveDirectoryConfig":{"GroupManagedServiceAccounts":[{"Name":"webapp01","Scope":"contoso.com"}]}}`,
+					"host_process":              true,
+					"gmsa_credential_spec_name": "credspecname1",
+					"run_as_username":           "DOMAIN\\serviceaccount",
+				},
+			},
+		},
+		{
+			v1.WindowsSecurityContextOptions{
+				GMSACredentialSpec: ptr.To(`{"CmsPlugins":["ActiveDirectory"],"DomainJoinConfig":{"Sid":"S-1-5-21-9876543210-9876543210-9876543210","MachineAccountName":"webapi01","Guid":"87654321-4321-4321-4321-210987654321","DnsTreeName":"corp.local","DnsName":"corp.local","NetBiosName":"CORP"},"ActiveDirectoryConfig":{"GroupManagedServiceAccounts":[{"Name":"webapi01","Scope":"corp.local"}]}}`),
+				HostProcess:        ptr.To(false),
+			},
+			[]interface{}{
+				map[string]interface{}{
+					"gmsa_credential_spec": `{"CmsPlugins":["ActiveDirectory"],"DomainJoinConfig":{"Sid":"S-1-5-21-9876543210-9876543210-9876543210","MachineAccountName":"webapi01","Guid":"87654321-4321-4321-4321-210987654321","DnsTreeName":"corp.local","DnsName":"corp.local","NetBiosName":"CORP"},"ActiveDirectoryConfig":{"GroupManagedServiceAccounts":[{"Name":"webapi01","Scope":"corp.local"}]}}`,
+					"host_process":         false,
+				},
+			},
+		},
+		{
+			v1.WindowsSecurityContextOptions{},
+			[]interface{}{
+				map[string]interface{}{},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		output := flattenWindowsOptions(tc.Input)
+		if !reflect.DeepEqual(output, tc.ExpectedOutput) {
+			t.Fatalf("Unexpected output from flattener.\nExpected: %#v\nGiven:    %#v",
+				tc.ExpectedOutput, output)
+		}
+	}
+}
